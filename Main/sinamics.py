@@ -59,7 +59,7 @@ class Sinamics():
         # See: snap7.sourceforge.net/home.html
         self.converter = snap7.client.Client()
 
-    def destroy(self):
+    def destroy(self,):
         """ This method can be used to destroy the snap7 client.
 
         """
