@@ -320,7 +320,7 @@ class Sinamics():
                     text = """ Argument 'value' is in incorrect format!
                     If you are trying to write a U32/binary parameter,
                     the value to be written should be:
-                    - 0 or 1 (int and string are accepted);
+                    - 0, 1 or 100 (int accepted);
                     - a string containing BICO parameter number + '.' + index,
                       E.g. for writing r722.2 to P0844:
                       inverter.write_parameter(844, '722.2', 'I/B').
