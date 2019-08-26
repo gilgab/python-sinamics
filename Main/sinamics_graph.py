@@ -30,8 +30,8 @@ def graph(inverter, param_array, graph_time=10000.0,
       More info on how you can customize this parameter, see:
       https://matplotlib.org/3.1.0/tutorials/colors/colors.html
       If equal None :
-    maxlen_param_array > 10: xkcd colors are used
-    maxlen_param_array <= 10: T10 categorical palette are used.
+        maxlen_param_array > 10: xkcd colors are used
+        maxlen_param_array <= 10: T10 categorical palette are used.
     - grid equal True means a grid will be displayed in the graph.
     - grid_args can be a list containing the
       arguments to be passed to grid pyplot method
