@@ -26,7 +26,7 @@ The needed libraries to run the codes:
 For installation of snap7 library, see:
 
 https://python-snap7.readthedocs.io/en/latest/installation.html
-[snap7.sourceforge.net/home.html](snap7.sourceforge.net/home.html)
+https://snap7.sourceforge.net/home.html
 
 ## Documentation
 Complete information regarding snap7 and python-snap7 can be seen in the docs bellow:
