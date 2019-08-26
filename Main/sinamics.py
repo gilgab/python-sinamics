@@ -40,6 +40,20 @@ class SinamicsException(Exception):
 
 class Sinamics():
 
+    """ Class for Sinamics control/monitoring.
+
+    The read/write requests are based in the article of
+    number (Entry ID) 97550333 in the SIOS website
+    (Siemens Industry Online Support).
+
+    For use with G120, inverter FW must be >= 4.7,
+    as article of number 50037141 in SIOS describe.
+
+    So far, inverters that I sucessfully tested with this code are:
+    - Sinamics G120 (FW 4.7 SP10);
+    - Sinamics V90 (FW 1.02.01);
+
+    """
     def __init__(self):
         # Defining this object as a S7 Client.
         # See: snap7.sourceforge.net/home.html
