@@ -108,7 +108,7 @@ class Sinamics():
     @error_wrapper
     def read_parameter(self, number, data_type,
                        index=0, drive_object=1,
-                       no_unpack=False, noif_U32_binary=False):
+                       no_unpack=False):
         """ This method can be used to read any parameter in the inverter.
 
         ARGUMENTS
@@ -145,10 +145,11 @@ class Sinamics():
         ***********
         ***NOTE***:
         REGARDING READ/WRITE OF PARAMETER WITH
-        DATA TYPE U32/Binary (P0840, P0844, etc.).
+        DATA TYPE U32/Binary (P0840, P0844, etc.) OR
+        DATA TYPE U32/Floating32 (P1070, etc.).
 
         Parameters with this data type are tricky to read and write.
-        The data type informed must be 'I/B' (Unsigned 32/Binary).
+        The data type informed must be 'I/B'.
         It is formed by 4 bytes:
         First 2 bytes from left to right --> main value or parameter number.
         Last 2 bytes from left to right  --> bit to be taken from (i.e index).
@@ -162,9 +163,8 @@ class Sinamics():
         - 082A in Decimal means 2090;
         - FC00 in Decimal measn 64512 and is the correspondent to index 0.
 
-        For this particularity, there's a special 'if' condition
-        and created data_type 'I/B' in the case of U32/Binary parameters.
-        This special 'if' can be disabled setting noif_U32_binary=True.
+        A '.' must always be present when writing a BICO
+        parameter as 'value' argument.
 
         """
 
@@ -186,7 +186,7 @@ class Sinamics():
 
             # Special condition for Unsigned32/Binary parameter;
             # See ***NOTE*** in method comments.
-            if not noif_U32_binary and data_type == 'I/B':
+            if data_type == 'I/B':
                 data = hex(data).split('x')[-1]  # Removing 0x from hex.
                 n_nibbles = 8                    # Nibbles in 4 bytes.
 
@@ -244,50 +244,61 @@ class Sinamics():
         ***********
         ***NOTE***:
         REGARDING READ/WRITE OF PARAMETER WITH
-        DATA TYPE U32/Binary (P0840, P0844, etc.).
+        DATA TYPE U32/Binary (P0840, P0844, etc.) OR
+        DATA TYPE U32/Floating32 (P1070, etc.).
 
         Parameters with this data type are tricky to read and write.
-        The data type informed must be 'I/B' (Unsigned 32/Binary).
+        The data type informed must be 'I/B'.
         It is formed by 4 bytes:
         First 2 bytes from left to right --> main value or parameter number.
         Last 2 bytes from left to right  --> bit to be taken from (i.e index).
         For last 2 bytes, a value of FC00 means bit 0, FC01 means bit 1, etc.
 
-        Example:
+        EXAMPLE
+        -----------
         Reading P0840 with P0840 = 2090.0 returns (using unpack regarding 'I',
         Unsigned32, and converting from little endian to big endian):
+
         In Decimal; 137034752
         In Hexadecimal; 082A FC00 ->>
         - 082A in Decimal means 2090;
         - FC00 in Decimal measn 64512 and is the correspondent to index 0.
 
-        For this particularity, there's a special 'if' condition
-        and created data_type 'I/B' in the case of U32/Binary parameters.
-        This special 'if' can be disabled setting noif_U32_binary=True.
+        The same structure is used to facilitate writing
+        values to U32/Binary and U32/Float32 parameters.
+        A '.' must always be present when writing a BICO
+        parameter as 'value' argument.
 
-        The same structure is used to facilitate
-        writing values to U32/Binary parameters:
 
-        Example; Writing P1113 = r2092.2:
+        EXAMPLE
+        -----------
+        Writing P1113 = r2092.2:
+
         g120.write(1113, '2092.2', 'I/B')
+
+        EXAMPLE
+        -----------
+        Writing P1070 = r0755.1:
+
+        g120.write(1070, '755.1', 'I/B')
 
         """
 
         offset = 1024*drive_object + index  # Defined in SIOS article 97550333
 
         # see ***NOTE*** in comments above.
-        if not noif_U32_binary and data_type == 'I/B':
+        if data_type == 'I/B':
             # Tratative to take strings 'value' with parameter + '.' + index
             # To be written to desired parameter ('number' argument).
             # e.g. writting r722.2 to P0844:
             # value = '722.2'.
 
-            # If you wish to write 0 or 1 directly to the parameter
-            # Defined in 'number', value can be informed as string or int
+            # If you wish to write 0, 1 or 100 directly to the parameter
+            # Defined in 'number', value can be informed as int.
 
-            if type(value) is int or type(value) is str and len(value) == 1:
-                # In case value is 0 or 1.
-                if int(value) == 0 or (value) == 1:
+            if type(value) is int:
+                # In case value is 0, 1 or 100.
+                if value == 0 or value == 1 or value == 100:
                     # 2**16 to indicate the value is rotating left two bytes.
                     value = (2**16)*int(value)
                 else:
