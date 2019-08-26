@@ -31,12 +31,12 @@ snap7.sourceforge.net/home.html
 # Documentation
 Complete information regarding snap7 and python-snap7 can be seen in the docs bellow:
 
-https://github.com/gijzelaerr/python-snap7\n
-https://python-snap7.readthedocs.io\n
+https://github.com/gijzelaerr/python-snap7
+https://python-snap7.readthedocs.io
 snap7.sourceforge.net/home.html
 
 More information regarding the S7 protocol can be seen in:
 
-gmiru.com/article/s7comm/\n
-gmiru.com/article/s7comm-part2/\n
+gmiru.com/article/s7comm/
+gmiru.com/article/s7comm-part2/
 snap7.sourceforge.net/home.html
