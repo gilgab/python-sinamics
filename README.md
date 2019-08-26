@@ -2,9 +2,9 @@
 Python codes to work with [Siemens SINAMICS inverters](https://new.siemens.com/global/en/products/drives/sinamics.html) via [Snap7 library](http://snap7.sourceforge.net/).
 
 ## Description
-This project contains a class definition for control/monitoring of SINAMICS inverters via TCP/IP using application layer [S7 protocol](https://wiki.wireshark.org/S7comm). For this, it utilizes the [python-snap7 library]((https://python-snap7.readthedocs.io).
+This project contains a class definition for control/monitoring of SINAMICS inverters via TCP/IP using application layer [S7 protocol](https://wiki.wireshark.org/S7comm). For this, it utilizes the [python-snap7 library](https://python-snap7.readthedocs.io).
 
-The [python-snap7 library]((https://python-snap7.readthedocs.io) has a python wrapper for S7 communication/read/write functions of [Snap7 library](http://snap7.sourceforge.net/).
+The [python-snap7 library](https://python-snap7.readthedocs.io) has a python wrapper for S7 communication/read/write functions of [Snap7 library](http://snap7.sourceforge.net/).
 
 The codes in [Main](Main/) folder are:
 - [sinamics.py](Main/sinamics.py) : Class definition to work with SINAMICS inverters.
