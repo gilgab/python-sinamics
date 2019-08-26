@@ -37,3 +37,6 @@ g120.write_parameter(15, 12, 'I') # macro 15.
 #    Insert write_parameter calls with p0010 = 1
 #    to motor nameplate data and etc.
 # }
+
+# Destroying object created:
+g120.destroy()
