@@ -36,4 +36,3 @@ Complete information regarding snap7 and python-snap7 can be seen in the docs be
 More information regarding the S7 protocol can be seen in:
 - [Gmiru Article-part1](http://gmiru.com/article/s7comm/)
 - [Gmiru Article-part2](http://gmiru.com/article/s7comm-part2/)
-- [Snap7 Source](http://snap7.sourceforge.net/home.html)
