@@ -59,6 +59,13 @@ class Sinamics():
         # See: snap7.sourceforge.net/home.html
         self.converter = snap7.client.Client()
 
+    def destroy(self):
+        """ This method can be used to destroy the snap7 client.
+
+        """
+
+        converter.destroy()
+
     def error_wrapper(func):
         """ Function wrapper to check for specific Snap7 Exceptions.
 
