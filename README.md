@@ -26,17 +26,17 @@ The needed libraries to run the codes:
 For installation of snap7 library, see:
 
 https://python-snap7.readthedocs.io/en/latest/installation.html
-https://snap7.sourceforge.net/home.html
+http://snap7.sourceforge.net/home.html
 
 ## Documentation
 Complete information regarding snap7 and python-snap7 can be seen in the docs bellow:
 
 https://github.com/gijzelaerr/python-snap7
 https://python-snap7.readthedocs.io
-[snap7.sourceforge.net/home.html](snap7.sourceforge.net/home.html)
+http://snap7.sourceforge.net/home.html
 
 More information regarding the S7 protocol can be seen in:
 
-[gmiru.com/article/s7comm/](gmiru.com/article/s7comm/)
-[gmiru.com/article/s7comm-part2/](gmiru.com/article/s7comm-part2/)
-[snap7.sourceforge.net/home.html](snap7.sourceforge.net/home.html)
+http://gmiru.com/article/s7comm/
+http://gmiru.com/article/s7comm-part2/
+http://snap7.sourceforge.net/home.html
