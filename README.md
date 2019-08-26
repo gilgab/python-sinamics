@@ -1,10 +1,10 @@
 # python-sinamics
-Python codes to work with Siemens SINAMICS inverters via Snap7 library.
+Python codes to work with [Siemens SINAMICS inverters](https://new.siemens.com/global/en/products/drives/sinamics.html) via [Snap7 library](http://snap7.sourceforge.net/).
 
 ## Description
-This project contains a class definition for control/monitoring of SINAMICS inverters via TCP/IP using application layer S7 protocol. For this, it utilizes the python-snap7 library.
+This project contains a class definition for control/monitoring of SINAMICS inverters via TCP/IP using application layer [S7 protocol](https://wiki.wireshark.org/S7comm). For this, it utilizes the [python-snap7 library]((https://python-snap7.readthedocs.io).
 
-The python-snap7 library has a python wrapper for S7 communication/read/write functions of snap7 library.
+The [python-snap7 library]((https://python-snap7.readthedocs.io) has a python wrapper for S7 communication/read/write functions of [Snap7 library](http://snap7.sourceforge.net/).
 
 The codes in [Main](Main/) folder are:
 - [sinamics.py](Main/sinamics.py) : Class definition to work with SINAMICS inverters.
@@ -14,7 +14,7 @@ The codes in [Main](Main/) folder are:
 This code can be executed as a module (using import), placing the desired [Main](Main/) folder files in your python lib packages folder:
 - For Unix, usually /usr/lib/pythonX.X/site-packages.
 - For Windowns, probably lib/site-packages in your Program Files (x86) Python folder.
-- If you are using [Virtualenv](https://virtualenv.pypa.io/en/latest/), should be something similar.
+- If you are using Virtualenv, should be something similar.
 
 As [documentation defines](https://python-snap7.readthedocs.io/en/latest/introduction.html), python-snap7 library was built for python 2.7, with other versions not completely tested. The codes in this project were tested with python 2.7 only.
 
