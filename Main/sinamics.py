@@ -8,52 +8,6 @@ import snap7
 from snap7.snap7exceptions import Snap7Exception
 
 
-# Written by Gabriel Gil, e-mail me at gabriel.gilg4@gmail.com
-
-""" This code can be executed as a module (import sinamics),
-placing this file in your python lib packages folder.
-For Unix, usually /usr/lib/pythonX.X/site-packages.
-For Windowns, probably lib/site-packages in your Program Files
-Python folder. If you are using virtualenv, should be something similar.
-
-This code contains a class definition for control/monitoring of
-SINAMICS inverters via TCP using application layer S7 protocol.
-For this, it utilizes the python-snap7 library.
-
-The python-snap7 library has a python wrapper for
-s7 communication/read/write functions of snap7 library.
-Complete information regarding snap7 and python-snap7
-can be seen in the docs bellow:
-
-https://github.com/gijzelaerr/python-snap7
-https://python-snap7.readthedocs.io
-snap7.sourceforge.net/home.html
-
-For installation of snap7 library, see:
-
-https://python-snap7.readthedocs.io/en/latest/installation.html
-snap7.sourceforge.net/home.html
-
-More information regarding the s7 protocol, can be seen in:
-
-gmiru.com/article/s7comm/
-gmiru.com/article/s7comm-part2/
-snap7.sourceforge.net/home.html
-
-The read/write request of SINAMICS inverter are
-based in the article of number (Entry ID) 97550333
-in the SIOS website (Siemens Industry Online Support).
-
-For use with G120, inverter FW must be >= 4.7,
-as article of item 50037141 in SIOS describe.
-
-So far, inverters that I sucessfully tested with this code are:
-- G120 (FW 4.7 SP10)
-- V90 (FW 1.02.01)
-
-"""
-
-
 # Constants and definitions.
 
 # S7 constants when working with SINAMICS via S7
@@ -323,7 +277,6 @@ class Sinamics():
 
         # see ***NOTE*** in comments above.
         if not noif_U32_binary and data_type == 'I/B':
-
             # Tratative to take strings 'value' with parameter + '.' + index
             # To be written to desired parameter ('number' argument).
             # e.g. writting r722.2 to P0844:
