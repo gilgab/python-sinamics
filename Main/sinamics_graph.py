@@ -1,8 +1,34 @@
+# Built-in libraries.
+import struct
+import time
+import sys
+
 # Third-party libraries.
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib._color_data as mcd
-from scipy import signal
+import snap7
+from snap7.snap7exceptions import Snap7Exception
+
+
+# Constants and definitions.
+
+# S7 constants when working with SINAMICS via S7
+# More info, see:
+# gmiru.com/resources/s7proto/constants.txt
+AREA = 132  # Code area for Data block (DB)
+RACK = 0    # For inverter, only 0 makes sense.
+SLOT = 0    # For inverter, only 0 makes sense.
+
+# Struct format characters, more info on:
+# https://docs.python.org/2/library/struct.html#format-characters
+STRUCT_FORMAT_CHARS = {
+                       'c': 1, 'b': 1, 'B': 1, '?': 1,
+                       'h': 2, 'H': 2, 'i': 4, 'I': 4,
+                       'l': 4, 'L': 4, 'q': 8, 'Q': 8,
+                       'f': 4, 'd': 8
+                      }
+
+# Constants for reading/writing of U32/Binary parameters (FC00)
+# See ***NOTE*** in read_parameter and write_parameter methods.
+INDEX0_U32_BINARY = 64512
 
 
 # Used to return exceptions for a few user erroneous arguments cases.
@@ -10,159 +36,394 @@ class SinamicsException(Exception):
     pass
 
 
-def graph(inverter, param_array, graph_time=10000.0,
-          labels=None, colors=None,
-          grid=True, grid_args=[], medfilt=False,
-          save=False, filepath=None, maxlen_param_array=None):
-    """ This function can be used to generate a
-    graphical view of inverter variables using matplotlib.
+# Class definition.
 
-    ARGUMENTS
-    -----------
-    - inverter is a Sinamics object defined via sinamics.py.
-    - param_array is a list of lists. Each list has the
-      same format as the arguments of method read_parameter.
-    - graph_time is the time that the trace will last in ms.
-    - labels can be defined as a list with same len as param_array
-      containing the label strings for each parameter
-      to be traced. If equal None them the parameter number is selected.
-    - colors can define the color for each parameter to be traced.
-      More info on how you can customize this parameter, see:
-      https://matplotlib.org/3.1.0/tutorials/colors/colors.html
-      If equal None :
-        maxlen_param_array > 10: xkcd colors are used
-        maxlen_param_array <= 10: T10 categorical palette are used.
-    - grid equal True means a grid will be displayed in the graph.
-    - grid_args can be a list containing the
-      arguments to be passed to grid pyplot method
-      with exception of the main grid=True.
-      More info on these arguments can be seen in:
-      https://matplotlib.org/3.1.1/api/as_gen/matplotlib.pyplot.grid.html
-    - medfilt equal True means that a median filter
-      will be applied to the trace. The kernel size, i.e.,
-      filter lenght, is the variable filter_kernel_size. More info see:
-      https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.medfilt.html
-    - using save=true, you can save the graph as a file
-      with a path and name specified in 'filepath' argument, e.g.:
-      filepath='<Directory>/graph1.jpg'. Not all file types are accepted.
-      For complete details on accepted types, see:
-      https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.savefig.html
-    - maxlen_param_array is the maximum possible number of
-      parameters to be simultaneosly traced. It's default is equal 5.
-      Be aware that multiple trace of various parameters implies
-      in lower acquisition points during graph_time.
+class Sinamics():
 
-    EXAMPLE
-    -----------
-    Generating a graph of unfiltered variables, speed (r0021),
-    current (r0027) and DC link (r0026) for 10 seconds.
+    """ Class for Sinamics control/monitoring.
 
-    import sinamics
+    The read/write requests are based in the article of
+    number (Entry ID) 97550333 in the SIOS website
+    (Siemens Industry Online Support).
 
-    g120 = sinamics.Sinamics()
-    g120.connect('192.168.0.20')
-    param_array = [[21, 'f'], [27, 'f'], [26, 'f']]
-    g120.graph(param_array, graph_time=10000.0)
+    For use with G120, inverter FW must be >= 4.7,
+    as article of number 50037141 in SIOS describe.
+
+    So far, inverters that I sucessfully tested with this code are:
+    - Sinamics G120 (FW 4.7 SP10);
+    - Sinamics V90 (FW 1.02.01);
 
     """
+    def __init__(self):
+        # Defining this object as a S7 Client.
+        # See: snap7.sourceforge.net/home.html
+        self.converter = snap7.client.Client()
 
-    # Constants for graph method and filtering:
-    filter_kernel_size = 7  # Good working value.
-    if maxlen_param_array is None:
-        maxlen_param_array = 5  # Default.
+    def destroy(self):
+        """ This method can be used to destroy the snap7 client.
 
-    # Checking for inadequate len of param_array.
-    if len(param_array) > maxlen_param_array:
-        text = """Graph Error : The argument 'param_array' has length bigger than {}!
-        Adjust maxlen_param_array argument
-        """.format(maxlen_param_array)
-        raise SinamicsException(text)
+        """
 
-    # Initial values.
-    read_data_array = [[] for i in xrange(len(param_array))]
-    time_axis = []
-    start_time = time.time() * 1000.0  # Converting to miliseconds.
-    run_time = start_time
+        self.converter.destroy()
 
-    # Gathering data
-    while (run_time-start_time < graph_time):
-        i = 0
-        for item in param_array:
-            read_data_array[i].append(inverter.read_parameter(*item))
-            i += 1
-            run_time = time.time() * 1000.  # Converting to miliseconds.
-            time_axis.append(run_time-start_time)
-    time_axis = np.asarray(time_axis)
-    read_data_array = np.asarray(read_data_array)
+    def error_wrapper(func):
+        """ Function wrapper to check for specific Snap7 Exceptions.
 
-    # Filtering with scipy.signal.medfilt.
-    if medfilt:
-        for i in xrange(len(param_array)):
-            read_data_array[i] = signal.medfilt(read_data_array[i],
-                                                filter_kernel_size)
+        """
 
-    # Defining labels.
-    if type(labels) is list and len(labels) == len(param_array):
-        labels = labels
-    else:
-        # The label will be 'r' + parameter number.
-        labels = ['r'+str(param_array[i][0])
-                  for i in xrange(len(param_array))]
+        def func_wrapper(*args, **kwargs):
 
-    # Defining colors.
-    if type(colors) is list and len(colors) == len(param_array):
-        colors = colors
-    elif maxlen_param_array < 10:
-        # Using T10 categorical palette.
-        # See Matplotlib Specifying colors tutorial.
-        colors = [
-          'tab:blue', 'tab:orange', 'tab:green', 'tab:red',
-          'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray',
-          'tab:olive', 'tab:cyan'
-                 ]
-    else:
-        # Using xkcd colors.
-        # See Matplotlib Specifying colors tutorial.
-        colors = [color for color in mcd.XKCD_COLORS][0:maxlen_param_array]
+            try:
+                return func(*args, **kwargs)
+            except Snap7Exception as e:
 
-    # Plotting.
-    # More info on the plotting of multiple axes in same figure, see:
-    # https://matplotlib.org/gallery/api/two_scales.html
-    fig, host = plt.subplots(figsize=(10, 10))
-    # Each index of 'plots' may be a graph of a variable.
-    plots = [0 for i in xrange(maxlen_param_array)]
-    i = 0  # counter for loop
+                # Function refused by inverter/CPU.
+                s7_refused = 'CLI : function refused by CPU (Unknown error)'
+                # Could not reach the device via TCP.
+                s7_unreach = ' TCP : Unreachable peer'
 
-    for data in read_data_array:
-        if i == 0:
-            # First plot and host for next plots.
-            host.set_xlabel('Time (ms)')
-            host.set_ylabel(labels[i], color=colors[i])
-            host.plot(time_axis,
-                      data[0:len(time_axis)],
-                      color=colors[i])
-            host.tick_params(axis='y', labelcolor=colors[i])
+                if e.message == s7_refused:
+                    text = """Write/Read Error : Request for inverter was refused!
+                        Check:
+                        - Parameter number exists? See inverter list manual.
+                        - The index specified exists in the inverter?
+                        - See arguments used for any possible incorrect use.
+                        - Are you trying to write a parameter with
+                          special conditions? e.g., trying to change P0304
+                          with P0010 = 0, or writing a parameter to a telegram
+                          value that it's not in the current telegram (P0922)?
+                          """
+                    raise Snap7Exception(text)
+
+                elif e.message == s7_unreach:
+                    text = """Connection Error : Inverter could not be reached!
+                        Check:
+                        - The IP Address argument is correct?
+                          Is it possible to ping the inverter?
+                        - For G120, make sure the FW is >= version 4.7
+                          (internal versional, r0018, should start with 47).
+                          """
+                    raise Snap7Exception(text)
+
+                else:
+                    raise Snap7Exception(e.message)
+
+                return None
+
+        return func_wrapper
+
+    @error_wrapper
+    def connect(self, ip_address):
+        """ This method can be used to establish connection
+        to the inverter. It should be your second call after object init.
+
+        ARGUMENTS
+        -----------
+        - ip_address is the IP of the inverter you are trying to connect to.
+
+        """
+
+        # Trying to connect.
+        self.converter.connect(ip_address, RACK, SLOT)
+
+    @error_wrapper
+    def read_parameter(self, number, data_type,
+                       index=0, drive_object=1,
+                       no_unpack=False):
+        """ This method can be used to read any parameter in the inverter.
+
+        ARGUMENTS
+        -----------
+        - number is the parameter number, e.g., reading r0026, number=26.
+        - data_type is the type of parameter data, e.g.,
+          r0026 is floating32, so data_type='f'.
+          A list of data_types characters can be seen in
+          https://docs.python.org/2/library/struct.html#format-characters
+          Description of a parameter data type can be seen in the List Manual.
+        - index is the parameter index, e.g., reading r0722.1, index=1.
+        - drive_object is the drive object number (for g120 is always 1).
+        - no_unpack equal True means that the raw hex value of the parameter
+          will be read, with no struct library unpack.
+        - noif_U32_binary; see NOTE bellow.
+
+        RETURNS
+        -----------
+        The parameter value in human-readable form with no_unpack=False,
+        or in hexadecimal value with no_unpack=True.
+
+        EXAMPLE:
+        -----------
+        Reading the link DC, r0026, of g120 inverter (should be something
+        around 1.35*VL, with VL being the AC line voltage of inverter infeed).
+        As List manual describes, r0026 is a float32 and with index 0 only.
+
+        import sinamics
+
+        g120 = sinamics.Sinamics()
+        g120.connect('192.168.0.20')
+        VDC = g120.read_parameter(26, 'f')
+
+        ***********
+        ***NOTE***:
+        REGARDING READ/WRITE OF PARAMETER WITH
+        DATA TYPE U32/Binary (P0840, P0844, etc.) OR
+        DATA TYPE U32/Floating32 (P1070, etc.).
+
+        Parameters with this data type are tricky to read and write.
+        The data type informed must be 'I/B'.
+        It is formed by 4 bytes:
+        First 2 bytes from left to right --> main value or parameter number.
+        Last 2 bytes from left to right  --> bit to be taken from (i.e index).
+        For last 2 bytes, a value of FC00 means bit 0, FC01 means bit 1, etc.
+
+        Example:
+        Reading P0840 with P0840 = 2090.0 returns (using unpack regarding 'I',
+        Unsigned32, and converting from little endian to big endian):
+        In Decimal; 137034752
+        In Hexadecimal; 082A FC00 ->>
+        - 082A in Decimal means 2090;
+        - FC00 in Decimal measn 64512 and is the correspondent to index 0.
+
+        A '.' must always be present when writing a BICO
+        parameter as 'value' argument.
+
+        """
+
+        offset = 1024*drive_object + index  # Defined in SIOS article 97550333
+        # Here is where the reading actually occurs.
+        # data_type[0] to take 'I' in 'I/B' cases (see ***NOTES***).
+        data = self.converter.read_area(AREA, number, offset,
+                                        STRUCT_FORMAT_CHARS[data_type[0]])
+
+        if no_unpack:
+            # Return raw hex value.
+            return data
+
         else:
-            # Plots sharing the same X axis with the host (twins).
-            plots[i-1] = host.twinx()
-            plots[i-1].set_ylabel(labels[i], color=colors[i])
-            plots[i-1].plot(time_axis,
-                            data[0:len(time_axis)],
-                            color=colors[i])
-            plots[i-1].tick_params(axis='y', labelcolor=colors[i])
-        if i > 1:
-            # Horizontal offset in Y scale of twin plots.
-            plots[i-1].spines['right'].
-            set_position(('outward', (i-1)*70))
-        i += 1
-    fig.tight_layout()  # For better appereance of Y scales.
+            # The hex read value is unpacked and converted
+            # from little endian to big endian.
+            # data_type[0] exists to take 'I' in 'I/B' cases (see ***NOTES***)
+            data = struct.unpack(data_type[0], data[::-1])[0]
 
-    # Setting grid.
-    if grid:
-        plt.grid(grid, *grid_args)
+            # Special condition for Unsigned32/Binary parameter;
+            # See ***NOTE*** in method comments.
+            if data_type == 'I/B':
+                data = hex(data).split('x')[-1]  # Removing 0x from hex.
+                n_nibbles = 8                    # Nibbles in 4 bytes.
 
-    # Saving or showing.
-    if save and filepath is not None:
-        plt.savefig(filepath)
-    else:
-        plt.show()
+                # Adding zeros at start, otherwise will not display 4 bytes.
+                if len(data) < n_nibbles:
+                    data = (n_nibbles - len(data))*'0' + data
+
+                # Taking the reading of 'r722.0' as example:
+                first_val = str(int(data[0:4], 16))    # first_val is 722.
+                last_val = str((int(data[4:8], 16)
+                                - INDEX0_U32_BINARY))  # last_val is 0.
+                point = '.'                            # Separator.
+
+                # In case the last two bytes are lower than INDEX0_U32_BINARY
+                # It means, for U32/Binary data type parameters,
+                # That the reading should return 0 or 1 (first two bytes),
+                # With no relevant value in the last two bytes.
+                if int(data[4:8], 16) < INDEX0_U32_BINARY:
+                    last_val = point = ''
+
+                # Final display.
+                data = first_val + point + last_val
+
+            return data
+
+    @error_wrapper
+    def write_parameter(self, number, value,
+                        data_type, index=0,
+                        drive_object=1, noif_U32_binary=False):
+        """ This method can be used to write a value to a
+        SINAMICS inverter parameter. The data type of
+        the parameter to be write must be know.
+
+        ARGUMENTS:
+        -----------
+        - number is the parameter number to be written, e.g., writing P1121.
+        - value is the value to be written to parameter e.g.,
+          writing P1121 equal to 10 seconds, value=10.
+        - data_type is the type of parameter data, e.g.,
+          r0026 floating32, so data_type='f'.
+          A complete list of data_types characters can be seen in
+          https://docs.python.org/2/library/struct.html#format-characters
+          Description of a parameter data type can be seen in the List Manual.
+        - index is the index of the parameter to be write.
+          E.g., writing P0756[01] = 3, index=1.
+        - drive_object is the drive object number (for g120 is always 1).
+        - noif_U32_binary; see note bellow.
+
+        EXAMPLE
+        -----------
+        Writing 1800 rpm to P2000:
+
+        g120.write(2000, 1800., 'f')
+
+        ***********
+        ***NOTE***:
+        REGARDING READ/WRITE OF PARAMETER WITH
+        DATA TYPE U32/Binary (P0840, P0844, etc.) OR
+        DATA TYPE U32/Floating32 (P1070, etc.).
+
+        Parameters with this data type are tricky to read and write.
+        The data type informed must be 'I/B'.
+        It is formed by 4 bytes:
+        First 2 bytes from left to right --> main value or parameter number.
+        Last 2 bytes from left to right  --> bit to be taken from (i.e index).
+        For last 2 bytes, a value of FC00 means bit 0, FC01 means bit 1, etc.
+
+        EXAMPLE
+        -----------
+        Reading P0840 with P0840 = 2090.0 returns (using unpack regarding 'I',
+        Unsigned32, and converting from little endian to big endian):
+
+        In Decimal; 137034752
+        In Hexadecimal; 082A FC00 ->>
+        - 082A in Decimal means 2090;
+        - FC00 in Decimal measn 64512 and is the correspondent to index 0.
+
+        The same structure is used to facilitate writing
+        values to U32/Binary and U32/Float32 parameters.
+        A '.' must always be present when writing a BICO
+        parameter as 'value' argument.
+
+
+        EXAMPLE
+        -----------
+        Writing P1113 = r2092.2:
+
+        g120.write(1113, '2092.2', 'I/B')
+
+        EXAMPLE
+        -----------
+        Writing P1070 = r0755.1:
+
+        g120.write(1070, '755.1', 'I/B')
+
+        """
+
+        offset = 1024*drive_object + index  # Defined in SIOS article 97550333
+
+        # see ***NOTE*** in comments above.
+        if data_type == 'I/B':
+            # Tratative to take strings 'value' with parameter + '.' + index
+            # To be written to desired parameter ('number' argument).
+            # e.g. writting r722.2 to P0844:
+            # value = '722.2'.
+
+            # If you wish to write 0, 1 or 100 directly to the parameter
+            # Defined in 'number', value can be informed as int.
+
+            if type(value) is int:
+                # In case value is 0, 1 or 100.
+                if value == 0 or value == 1 or value == 100:
+                    # 2**16 to indicate the value is rotating left two bytes.
+                    value = (2**16)*int(value)
+                else:
+                    # If it reaches here, an incorrect 'value' was informed.
+                    text = """ Argument 'value' is in incorrect format!
+                    If you are trying to write a U32/binary parameter,
+                    the value to be written should be:
+                    - 0, 1 or 100 (int accepted);
+                    - a string containing BICO parameter number + '.' + index,
+                      E.g. for writing r722.2 to P0844:
+                      inverter.write_parameter(844, '722.2', 'I/B').
+                      """
+                    raise SinamicsException(text)
+            else:
+                # In case it's a string defining other BICO parameter.
+                value = value.split('.')
+                # 2**16 to indicate the value is rotating left two bytes.
+                value = (int(value[0])*(2**16)
+                         + int(value[1])
+                         + INDEX0_U32_BINARY)
+
+        # data_type[0] to take 'I' in 'I/B' cases (see ***NOTES***).
+        value = bytearray(struct.pack(data_type[0], value))
+        # Where the writing actually occurs.
+        self.converter.write_area(AREA, number, offset, value[::-1])
+
+    def get_req_time(self, param=None, drive_object=1):
+        """ This method can be used to check the response time of a 2 byte
+        read request in miliseconds. Should be seem as a basic measure
+        of how much time a request takes.
+
+        ARGUMENTS
+        -----------
+        - param is an optional argument. It should be a list containing the
+          arguments as a read_parameter method request.
+          It defines which parameter will be used in the request attempt.
+        - drive_object can be defined case you want to read the
+          request time using default for a different drive_object.
+
+        RETURNS:
+        -----------
+        - Returns the time taken to complete the request in miliseconds.
+
+        EXAMPLE:
+        -----------
+        g120.request_time() # OR
+        g120.request_time([26, 'f']) # using 4 byte request - DC link
+
+        By default, this method tries to read r0002 from the inverter,
+        since it's a parameter that exist in most inverters and drive objects.
+
+        """
+
+        if type(param) is list:
+            start = time.time()
+            self.read_parameter(*param)
+            end = time.time()
+
+        else:
+            # If reading *param fails, we try the default r0002.
+            start = time.time()
+            self.read_parameter(2, 'h')
+            end = time.time()
+
+        return (end - start)*1000.0  # Converting from seconds to ms.
+
+    def get_param_list(self, filepath, max_param, DO_numbers):
+        """ This method can be used to search for all parameters
+        that get a response from S7 requests. A txt file is generated
+        with the list for each drive object specified. Only the parameters
+        that got a read response are saved, there is no interest in the value.
+
+        ARGUMENTS
+        -----------
+        - filepath is the the path where the txt files will be saved.
+        - max_param is the maximum parameter to be searched for.
+        - DO_numbers is a list containing each drive object to be searched.
+
+        """
+
+        # Adding / to end of filepath if it does not have.
+        if filepath[-1] != '/':
+            filepath += '/'
+
+        # Opening txt files
+        for i in xrange(len(DO_numbers)):
+            txtfiles[i] = open('{}params_DO{}.txt'.format(filepath,
+                                                          DO_numbers[i]), 'w')
+            text = """Parameters with response
+            using DO equal {}\n""".format(DO_numbers[i])
+            txtfiles[i].write(text)  # Text file header
+
+        # Searching for read request responses
+        param = 0  # counter
+        while param < max_param:
+            for i in xrange(len(DO_numbers)):
+                try:
+                    # Try to read, if not work, goes to next DO.
+                    self.read_parameter(param, 'I', drive_object=DO_numbers[i])
+                    txtfiles[i].write(str(param)+'\n')
+                except:
+                    pass
+            param += 1
+
+        # Closing text files
+        for item in txtfiles:
+            item.close()
