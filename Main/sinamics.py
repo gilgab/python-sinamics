@@ -64,7 +64,7 @@ class Sinamics():
 
         """
 
-        converter.destroy()
+        self.converter.destroy()
 
     def error_wrapper(func):
         """ Function wrapper to check for specific Snap7 Exceptions.
