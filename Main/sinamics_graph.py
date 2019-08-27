@@ -24,7 +24,8 @@ def graph(inverter, param_array, graph_time=10000.0,
     -----------
     - inverter is a Sinamics object defined via sinamics.py.
     - param_array is a list of lists. Each list has the
-      same format as the arguments of method read_parameter.
+      same format as the arguments of method read_parameter
+      in sinamics.py main code.
     - graph_time is the time that the trace will last in ms.
     - labels can be defined as a list with same len as param_array
       containing the label strings for each parameter
@@ -70,7 +71,7 @@ def graph(inverter, param_array, graph_time=10000.0,
     """
 
     # Constants for graph method and filtering:
-    filter_kernel_size = 7  # Good working value.
+    filter_kernel_size = 7      # Good working value.
     if maxlen_param_array is None:
         maxlen_param_array = 5  # Default.
 
@@ -115,7 +116,7 @@ def graph(inverter, param_array, graph_time=10000.0,
     # Defining colors.
     if type(colors) is list and len(colors) == len(param_array):
         colors = colors
-    elif maxlen_param_array < 10:
+    elif maxlen_param_array <= 10:
         # Using T10 categorical palette.
         # See Matplotlib Specifying colors tutorial.
         colors = [
@@ -123,7 +124,7 @@ def graph(inverter, param_array, graph_time=10000.0,
                   'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray',
                   'tab:olive', 'tab:cyan'
                  ]
-    else:
+    elif maxlen_param_array > 10:
         # Using xkcd colors.
         # See Matplotlib Specifying colors tutorial.
         colors = [color for color in mcd.XKCD_COLORS][0:maxlen_param_array]
@@ -157,8 +158,7 @@ def graph(inverter, param_array, graph_time=10000.0,
     fig.tight_layout()  # For better appereance of Y scales.
 
     # Setting grid.
-    if grid:
-        plt.grid(grid, *grid_args)
+    plt.grid(grid, *grid_args)
 
     # Saving or showing.
     if save and filepath is not None:
