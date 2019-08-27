@@ -7,7 +7,7 @@ This project contains a class definition for control/monitoring of SINAMICS inve
 The [python-snap7 library](https://python-snap7.readthedocs.io) has a python wrapper for S7 communication/read/write functions of [Snap7 library](http://snap7.sourceforge.net/).
 
 The codes in [Main](Main/) folder are:
-- [sinamics.py](Main/sinamics.py) : Class definition to work with SINAMICS inverters.
+- [sinamics.py](Main/sinamics.py) : Class definition to read/write parameters of SINAMICS inverters.
 - [sinamics_graph.py](Main/sinamics_graph.py) : A function definition built upon the class Sinamics to obtain traces from the inverter.
 
 ## How to use
