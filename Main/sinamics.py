@@ -149,7 +149,7 @@ class Sinamics():
         The parameter value in human-readable form with no_unpack=False,
         or in hexadecimal value with no_unpack=True.
 
-        EXAMPLE:
+        EXAMPLE 1
         -----------
         Reading the link DC, r0026, of g120 inverter (should be something
         around 1.35*VL, with VL being the AC line voltage of inverter infeed).
@@ -161,8 +161,8 @@ class Sinamics():
         g120.connect('192.168.0.20')
         VDC = g120.read_parameter(26, 'f')
 
-        ***********
-        ***NOTE***:
+        ***NOTE***
+        -----------
         REGARDING READ/WRITE OF PARAMETER WITH
         DATA TYPE U32/Binary (P0840, P0844, etc.) OR
         DATA TYPE U32/Floating32 (P1070, etc.).
@@ -174,7 +174,8 @@ class Sinamics():
         Last 2 bytes from left to right  --> bit to be taken from (i.e index).
         For last 2 bytes, a value of FC00 means bit 0, FC01 means bit 1, etc.
 
-        Example:
+        EXAMPLE 2
+        -----------
         Reading P0840 with P0840 = 2090.0 returns (using unpack regarding 'I',
         Unsigned32, and converting from little endian to big endian):
         In Decimal; 137034752
@@ -182,14 +183,11 @@ class Sinamics():
         - 082A in Decimal means 2090;
         - FC00 in Decimal measn 64512 and is the correspondent to index 0.
 
-        A '.' must always be present when writing a BICO
-        parameter as 'value' argument.
-
         """
 
         offset = 1024*drive_object + index  # Defined in SIOS article 97550333
         # Here is where the reading actually occurs.
-        # data_type[0] to take 'I' in 'I/B' cases (see ***NOTES***).
+        # data_type[0] to take 'I' in 'I/B' cases (see ***NOTE***).
         data = self.converter.read_area(AREA, number, offset,
                                         STRUCT_FORMAT_CHARS[data_type[0]])
 
@@ -200,10 +198,9 @@ class Sinamics():
         else:
             # The hex read value is unpacked and converted
             # from little endian to big endian.
-            # data_type[0] exists to take 'I' in 'I/B' cases (see ***NOTES***)
+            # data_type[0] exists to take 'I' in 'I/B' cases (see ***NOTE***)
             data = struct.unpack(data_type[0], data[::-1])[0]
 
-            # Special condition for Unsigned32/Binary parameter;
             # See ***NOTE*** in method comments.
             if data_type == 'I/B':
                 data = hex(data).split('x')[-1]  # Removing 0x from hex.
@@ -220,8 +217,8 @@ class Sinamics():
                 point = '.'                            # Separator.
 
                 # In case the last two bytes are lower than INDEX0_U32_BINARY
-                # It means, for U32/Binary data type parameters,
-                # That the reading should return 0 or 1 (first two bytes),
+                # It means, for U32/Binary or U32/float32 data type parameters,
+                # That the reading should return a value or parameter,
                 # With no relevant value in the last two bytes.
                 if int(data[4:8], 16) < INDEX0_U32_BINARY:
                     last_val = point = ''
@@ -252,14 +249,14 @@ class Sinamics():
           E.g., writing P0756[01] = 3, index=1.
         - drive_object is the drive object number (for g120 is always 1).
 
-        EXAMPLE
+        EXAMPLE 1
         -----------
         Writing 1800 rpm to P2000:
 
         g120.write(2000, 1800., 'f')
 
-        ***********
-        ***NOTE***:
+        ***NOTE***
+        -----------
         REGARDING READ/WRITE OF PARAMETER WITH
         DATA TYPE U32/Binary (P0840, P0844, etc.) OR
         DATA TYPE U32/Floating32 (P1070, etc.).
@@ -271,7 +268,12 @@ class Sinamics():
         Last 2 bytes from left to right  --> bit to be taken from (i.e index).
         For last 2 bytes, a value of FC00 means bit 0, FC01 means bit 1, etc.
 
-        EXAMPLE
+        The same structure is used to facilitate writing
+        values to U32/Binary and U32/Float32 parameters.
+        A '.' must always be present when writing a BICO
+        parameter as 'value' argument.
+
+        EXAMPLE 2
         -----------
         Reading P0840 with P0840 = 2090.0 returns (using unpack regarding 'I',
         Unsigned32, and converting from little endian to big endian):
@@ -281,22 +283,11 @@ class Sinamics():
         - 082A in Decimal means 2090;
         - FC00 in Decimal measn 64512 and is the correspondent to index 0.
 
-        The same structure is used to facilitate writing
-        values to U32/Binary and U32/Float32 parameters.
-        A '.' must always be present when writing a BICO
-        parameter as 'value' argument.
-
-
-        EXAMPLE
+        EXAMPLE 3
         -----------
-        Writing P1113 = r2092.2:
+        Writing P1113 = r2092.2 and P1070 = r0755.1:
 
         g120.write(1113, '2092.2', 'I/B')
-
-        EXAMPLE
-        -----------
-        Writing P1070 = r0755.1:
-
         g120.write(1070, '755.1', 'I/B')
 
         """
@@ -347,7 +338,7 @@ class Sinamics():
                 # Neither String or Int value was informed.
                 raise SinamicsException(text)
 
-        # data_type[0] to take 'I' in 'I/B' cases (see ***NOTES***).
+        # data_type[0] to take 'I' in 'I/B' cases (see ***NOTE***).
         value = bytearray(struct.pack(data_type[0], value))
         # Where the writing actually occurs.
         self.converter.write_area(AREA, number, offset, value[::-1])
@@ -365,11 +356,11 @@ class Sinamics():
         - drive_object can be defined case you want to read the
           request time using default for a different drive_object.
 
-        RETURNS:
+        RETURNS
         -----------
         - Returns the time taken to complete the request in miliseconds.
 
-        EXAMPLE:
+        EXAMPLE 1
         -----------
         g120.request_time() # OR
         g120.request_time([26, 'f']) # using 4 byte request - DC link
