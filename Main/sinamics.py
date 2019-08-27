@@ -1,7 +1,6 @@
 # Built-in libraries.
 import struct
 import time
-import sys
 
 # Third-party libraries.
 import snap7
@@ -57,6 +56,7 @@ class Sinamics():
     def __init__(self):
         # Defining this object as a S7 Client.
         # See: snap7.sourceforge.net/home.html
+
         self.converter = snap7.client.Client()
 
     def destroy(self,):
@@ -128,8 +128,7 @@ class Sinamics():
 
     @error_wrapper
     def read_parameter(self, number, data_type,
-                       index=0, drive_object=1,
-                       no_unpack=False):
+                       index=0, drive_object=1, no_unpack=False):
         """ This method can be used to read any parameter in the inverter.
 
         ARGUMENTS
@@ -144,7 +143,6 @@ class Sinamics():
         - drive_object is the drive object number (for g120 is always 1).
         - no_unpack equal True means that the raw hex value of the parameter
           will be read, with no struct library unpack.
-        - noif_U32_binary; see NOTE bellow.
 
         RETURNS
         -----------
@@ -235,8 +233,7 @@ class Sinamics():
 
     @error_wrapper
     def write_parameter(self, number, value,
-                        data_type, index=0,
-                        drive_object=1, noif_U32_binary=False):
+                        data_type, index=0, drive_object=1):
         """ This method can be used to write a value to a
         SINAMICS inverter parameter. The data type of
         the parameter to be write must be know.
@@ -254,7 +251,6 @@ class Sinamics():
         - index is the index of the parameter to be write.
           E.g., writing P0756[01] = 3, index=1.
         - drive_object is the drive object number (for g120 is always 1).
-        - noif_U32_binary; see note bellow.
 
         EXAMPLE
         -----------
@@ -317,6 +313,16 @@ class Sinamics():
             # If you wish to write 0, 1 or 100 directly to the parameter
             # Defined in 'number', value can be informed as int.
 
+            # Text to raise exception in wrong 'value' cases.
+            text = """ Argument 'value' is in incorrect format!
+            If you are trying to write a U32/binary parameter,
+            the value to be written should be:
+            - 0, 1 or 100 (int accepted);
+            - a string containing BICO parameter number + '.' + index,
+              E.g. for writing r722.2 to P0844:
+              inverter.write_parameter(844, '722.2', 'I/B').
+            """
+
             if type(value) is int:
                 # In case value is 0, 1 or 100.
                 if value == 0 or value == 1 or value == 100:
@@ -324,22 +330,22 @@ class Sinamics():
                     value = (2**16)*int(value)
                 else:
                     # If it reaches here, an incorrect 'value' was informed.
-                    text = """ Argument 'value' is in incorrect format!
-                    If you are trying to write a U32/binary parameter,
-                    the value to be written should be:
-                    - 0, 1 or 100 (int accepted);
-                    - a string containing BICO parameter number + '.' + index,
-                      E.g. for writing r722.2 to P0844:
-                      inverter.write_parameter(844, '722.2', 'I/B').
-                      """
                     raise SinamicsException(text)
-            else:
+
+            elif type(value) is str:
                 # In case it's a string defining other BICO parameter.
+                if '.' not in value:
+                    # If it reaches here, an incorrect 'value' was informed.
+                    raise SinamicsException(text)
                 value = value.split('.')
                 # 2**16 to indicate the value is rotating left two bytes.
                 value = (int(value[0])*(2**16)
                          + int(value[1])
                          + INDEX0_U32_BINARY)
+
+            else:
+                # Neither String or Int value was informed.
+                raise SinamicsException(text)
 
         # data_type[0] to take 'I' in 'I/B' cases (see ***NOTES***).
         value = bytearray(struct.pack(data_type[0], value))
@@ -381,7 +387,7 @@ class Sinamics():
         else:
             # If reading *param fails, we try the default r0002.
             start = time.time()
-            self.read_parameter(2, 'h')
+            self.read_parameter(2, 'h', drive_object=drive_object)
             end = time.time()
 
         return (end - start)*1000.0  # Converting from seconds to ms.
@@ -405,6 +411,7 @@ class Sinamics():
             filepath += '/'
 
         # Opening txt files
+        txtfiles = [0 for i in xrange(len(DO_numbers))]
         for i in xrange(len(DO_numbers)):
             txtfiles[i] = open('{}params_DO{}.txt'.format(filepath,
                                                           DO_numbers[i]), 'w')
