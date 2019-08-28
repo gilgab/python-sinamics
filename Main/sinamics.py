@@ -406,8 +406,8 @@ class Sinamics():
         for i in xrange(len(DO_numbers)):
             txtfiles[i] = open('{}params_DO{}.txt'.format(filepath,
                                                           DO_numbers[i]), 'w')
-            text = """Parameters with response
-            using DO equal {}\n""".format(DO_numbers[i])
+            text = ("""Parameters with response """
+                    """using DO equal {}\n""").format(DO_numbers[i])
             txtfiles[i].write(text)  # Text file header
 
         # Searching for read request responses
