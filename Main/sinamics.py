@@ -35,6 +35,50 @@ class SinamicsException(Exception):
     pass
 
 
+# Error wrapper
+def error_wrapper(func):
+    """ Function wrapper to check for specific Snap7 Exceptions.
+
+    """
+
+    def func_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Snap7Exception as e:
+            # Function refused by inverter/CPU.
+            s7_refused = 'CLI : function refused by CPU (Unknown error)'
+            # Could not reach the device via TCP.
+            s7_unreach = ' TCP : Unreachable peer'
+
+            if e.message == s7_refused:
+                text = """Write/Read Error : Request for inverter was refused!
+                Check:
+                - Parameter number exists? See inverter list manual.
+                - The index specified exists in the inverter?
+                - See arguments used for any possible incorrect use.
+                - Are you trying to write a parameter with
+                  special conditions? e.g., trying to change P0304
+                  with P0010 = 0, or writing a parameter to a telegram
+                  value that it's not in the current telegram (P0922)?
+                """
+                raise Snap7Exception(text)
+            elif e.message == s7_unreach:
+                text = """Connection Error : Inverter could not be reached!
+                Check:
+                - The IP Address argument is correct?
+                  Is it possible to ping the inverter?
+                - For G120, make sure the FW is >= version 4.7
+                  (internal versional, r0018, should start with 47).
+                """
+                raise Snap7Exception(text)
+            else:
+                raise Snap7Exception(e.message)
+
+        return None
+
+    return func_wrapper
+
+
 # Class definition.
 
 class Sinamics():
@@ -65,52 +109,6 @@ class Sinamics():
         """
 
         self.converter.destroy()
-
-    def error_wrapper(func):
-        """ Function wrapper to check for specific Snap7 Exceptions.
-
-        """
-
-        def func_wrapper(*args, **kwargs):
-
-            try:
-                return func(*args, **kwargs)
-            except Snap7Exception as e:
-
-                # Function refused by inverter/CPU.
-                s7_refused = 'CLI : function refused by CPU (Unknown error)'
-                # Could not reach the device via TCP.
-                s7_unreach = ' TCP : Unreachable peer'
-
-                if e.message == s7_refused:
-                    text = """Write/Read Error : Request for inverter was refused!
-                        Check:
-                        - Parameter number exists? See inverter list manual.
-                        - The index specified exists in the inverter?
-                        - See arguments used for any possible incorrect use.
-                        - Are you trying to write a parameter with
-                          special conditions? e.g., trying to change P0304
-                          with P0010 = 0, or writing a parameter to a telegram
-                          value that it's not in the current telegram (P0922)?
-                          """
-                    raise Snap7Exception(text)
-
-                elif e.message == s7_unreach:
-                    text = """Connection Error : Inverter could not be reached!
-                        Check:
-                        - The IP Address argument is correct?
-                          Is it possible to ping the inverter?
-                        - For G120, make sure the FW is >= version 4.7
-                          (internal versional, r0018, should start with 47).
-                          """
-                    raise Snap7Exception(text)
-
-                else:
-                    raise Snap7Exception(e.message)
-
-                return None
-
-        return func_wrapper
 
     @error_wrapper
     def connect(self, ip_address):
