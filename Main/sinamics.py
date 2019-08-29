@@ -30,11 +30,6 @@ STRUCT_FORMAT_CHARS = {
 INDEX0_U32_BINARY = 64512
 
 
-# Used to return exceptions for a few user erroneous arguments cases.
-class SinamicsException(Exception):
-    pass
-
-
 # Error wrapper
 def error_wrapper(func):
     """ Function wrapper to check for specific Snap7 Exceptions.
@@ -79,7 +74,12 @@ def error_wrapper(func):
     return func_wrapper
 
 
-# Class definition.
+# Used to return exceptions for a few user erroneous arguments cases.
+class SinamicsException(Exception):
+    pass
+
+
+# Sinamics Class definition.
 
 class Sinamics():
 
