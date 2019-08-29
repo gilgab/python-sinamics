@@ -299,22 +299,22 @@ class Sinamics():
             # e.g. writting r722.2 to P0844:
             # value = '722.2'.
 
-            # If you wish to write 0, 1 or 100 directly to the parameter
+            # If you wish to write 0 or 1 directly to the parameter
             # Defined in 'number', value can be informed as int.
 
             # Text to raise exception in wrong 'value' cases.
             text = """ Argument 'value' is in incorrect format!
             If you are trying to write a U32/binary parameter,
             the value to be written should be:
-            - 0, 1 or 100 (int accepted);
+            - 0 or 1 (int accepted);
             - a string containing BICO parameter number + '.' + index,
               E.g. for writing r722.2 to P0844:
               inverter.write_parameter(844, '722.2', 'I/B').
             """
 
             if type(value) is int:
-                # In case value is 0, 1 or 100.
-                if value == 0 or value == 1 or value == 100:
+                # In case value is 0 or 1.
+                if value == 0 or value == 1:
                     # 2**16 to indicate the value is rotating left two bytes.
                     value = (2**16)*int(value)
                 else:
