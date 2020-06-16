@@ -1,5 +1,6 @@
 # Built-in libraries.
 import struct
+import sys
 import time
 
 # Third-party libraries.
@@ -30,50 +31,6 @@ STRUCT_FORMAT_CHARS = {
 INDEX0_U32_BINARY = 64512
 
 
-# Error wrapper
-def error_wrapper(func):
-    """ Function wrapper to check for specific Snap7 Exceptions.
-
-    """
-
-    def func_wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Snap7Exception as e:
-            # Function refused by inverter/CPU.
-            s7_refused = 'CLI : function refused by CPU (Unknown error)'
-            # Could not reach the device via TCP.
-            s7_unreach = ' TCP : Unreachable peer'
-
-            if e.message == s7_refused:
-                text = """Write/Read Error : Request for inverter was refused!
-                Check:
-                - Parameter number exists? See inverter list manual.
-                - The index specified exists in the inverter?
-                - See arguments used for any possible incorrect use.
-                - Are you trying to write a parameter with
-                  special conditions? e.g., trying to change P0304
-                  with P0010 = 0, or writing a parameter to a telegram
-                  value that it's not in the current telegram (P0922)?
-                """
-                raise Snap7Exception(text)
-            elif e.message == s7_unreach:
-                text = """Connection Error : Inverter could not be reached!
-                Check:
-                - The IP Address argument is correct?
-                  Is it possible to ping the inverter?
-                - For G120, make sure the FW is >= version 4.7
-                  (internal versional, r0018, should start with 47).
-                """
-                raise Snap7Exception(text)
-            else:
-                raise Snap7Exception(e.message)
-
-        return None
-
-    return func_wrapper
-
-
 # Used to return exceptions for a few user erroneous arguments cases.
 class SinamicsException(Exception):
     pass
@@ -89,13 +46,6 @@ class Sinamics():
     number (Entry ID) 97550333 in the SIOS website
     (Siemens Industry Online Support).
 
-    For use with G120, inverter FW must be >= 4.7,
-    as article of number 50037141 in SIOS describe.
-
-    So far, inverters that I sucessfully tested with this code are:
-    - Sinamics G120 (FW 4.7 SP10);
-    - Sinamics V90 (FW 1.02.01);
-
     """
     def __init__(self):
         # Defining this object as a S7 Client.
@@ -110,7 +60,6 @@ class Sinamics():
 
         self.converter.destroy()
 
-    @error_wrapper
     def connect(self, ip_address):
         """ This method can be used to establish connection
         to the inverter. It should be your second call after object init.
@@ -124,7 +73,12 @@ class Sinamics():
         # Trying to connect.
         self.converter.connect(ip_address, RACK, SLOT)
 
-    @error_wrapper
+    def disconnect(self):
+        """ This method can be used to disconnect from inverter.
+        """
+
+        self.converter.disconnect()
+
     def read_parameter(self, number, data_type,
                        index=0, drive_object=1, no_unpack=False):
         """ This method can be used to read any parameter in the inverter.
@@ -226,12 +180,12 @@ class Sinamics():
 
             return data
 
-    @error_wrapper
     def write_parameter(self, number, value,
                         data_type, index=0, drive_object=1):
         """ This method can be used to write a value to a
-        SINAMICS inverter parameter. The data type of
-        the parameter to be write must be know.
+        SINAMICS inverter parameter. The data type of the
+        parameter to be write must be know. If the writing
+        fails an exception is raised by python-sinamics snap7.
 
         ARGUMENTS:
         -----------
@@ -400,8 +354,8 @@ class Sinamics():
             filepath += '/'
 
         # Opening txt files
-        txtfiles = [0 for i in xrange(len(DO_numbers))]
-        for i in xrange(len(DO_numbers)):
+        txtfiles = [0 for i in range(0, len(DO_numbers))]
+        for i in range(0, len(DO_numbers)):
             txtfiles[i] = open('{}params_DO{}.txt'.format(filepath,
                                                           DO_numbers[i]), 'w')
             text = ("""Parameters with response """
@@ -411,9 +365,9 @@ class Sinamics():
         # Searching for read request responses
         param = 0  # counter
         while param < max_param:
-            for i in xrange(len(DO_numbers)):
+            for i in range(0, len(DO_numbers)):
                 try:
-                    # Try to read, if not work, goes to next DO.
+                    # Try to read, if don't work, goes to next DO.
                     self.read_parameter(param, 'I', drive_object=DO_numbers[i])
                     txtfiles[i].write(str(param)+'\n')
                 except:
