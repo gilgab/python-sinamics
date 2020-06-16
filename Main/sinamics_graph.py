@@ -56,6 +56,10 @@ def graph(inverter, param_array, graph_time=10000.0,
       Be aware that multiple trace of various parameters implies
       in lower acquisition points during graph_time.
 
+    RETURNS
+    -----------
+    - A tuple containing the collect array data [0] and time axis [1].
+
     EXAMPLE
     -----------
     Generating a graph of unfiltered variables, speed (r0021),
@@ -77,13 +81,14 @@ def graph(inverter, param_array, graph_time=10000.0,
 
     # Checking for inadequate len of param_array.
     if len(param_array) > maxlen_param_array:
-        text = """Graph Error : The argument 'param_array' has length bigger than {}!
-        Adjust maxlen_param_array argument
-        """.format(maxlen_param_array)
+        text = ("Graph Error : The argument 'param_array'"
+                "has length bigger than {}!\n"
+                "Adjust 'maxlen_param_array'"
+                "argument").format(maxlen_param_array)
         raise SinamicsException(text)
 
     # Initial values.
-    read_data_array = [[] for i in xrange(len(param_array))]
+    read_data_array = [[] for i in range(0, len(param_array))]
     time_axis = []
     start_time = time.time() * 1000.0  # Converting to miliseconds.
     run_time = start_time
@@ -101,7 +106,7 @@ def graph(inverter, param_array, graph_time=10000.0,
 
     # Filtering with scipy.signal.medfilt.
     if medfilt:
-        for i in xrange(len(param_array)):
+        for i in range(0, len(param_array)):
             read_data_array[i] = signal.medfilt(read_data_array[i],
                                                 filter_kernel_size)
 
@@ -111,7 +116,7 @@ def graph(inverter, param_array, graph_time=10000.0,
     else:
         # The label will be 'r' + parameter number.
         labels = ['r'+str(param_array[i][0])
-                  for i in xrange(len(param_array))]
+                  for i in range(0, len(param_array))]
 
     # Defining colors.
     if type(colors) is list and len(colors) == len(param_array):
@@ -134,7 +139,7 @@ def graph(inverter, param_array, graph_time=10000.0,
     # https://matplotlib.org/gallery/api/two_scales.html
     fig, host = plt.subplots(figsize=(10, 10))
     # Each index of 'plots' may be a graph of a variable.
-    plots = [0 for i in xrange(maxlen_param_array)]
+    plots = [0 for i in range(0, maxlen_param_array)]
     i = 0  # counter for loop
 
     for data in read_data_array:
@@ -165,3 +170,5 @@ def graph(inverter, param_array, graph_time=10000.0,
         plt.savefig(filepath)
     else:
         plt.show()
+
+    return (read_data_array, time_axis)
